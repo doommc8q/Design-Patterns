@@ -1,169 +1,66 @@
-public class Originator {
- 
-    private double x;
-    private double y;
- 
-    private String lastUndoSavepoint;
-    CareTaker careTaker;
- 
-    public Originator(double x, double y,CareTaker careTaker){
-        this.x = x;
-        this.y = y;
- 
-        this.careTaker = careTaker;
- 
-        createSavepoint("INITIAL");
-    }
- 
-    public double getX(){
-        return x;
-    }
- 
-    public double getY(){
-        return y;
-    }
- 
-    public void setX(double x) {
-        this.x = x;
-    }
- 
-    public void setY(double y) {
-        this.y = y;
-    }
- 
-    public void createSavepoint(String savepointName){
-        careTaker.saveMemento(new Memento(this.x, this.y), savepointName);
-        lastUndoSavepoint = savepointName;
-    }
- 
-    public void undo(){
-        setOriginatorState(lastUndoSavepoint);
-    }
- 
-    public void undo(String savepointName){
-        setOriginatorState(savepointName);
-    }
- 
-    public void undoAll(){
-        setOriginatorState("INITIAL");
-        careTaker.clearSavepoints();
-    }
- 
-    private void setOriginatorState(String savepointName){
-        Memento mem = careTaker.getMemento(savepointName);
-        this.x = mem.getX();
-        this.y = mem.getY();
-    }
- 
-    @Override
-    public String toString(){
-        return "X: "+x+", Y: "+y;
-    }
- 
-}
+class Memento {
+    private String state;
 
----------------------------------------------------------------------------------------
+    public Memento(String state) {
+        this.state = state;
+    }
 
-public class Memento {
- 
-    private double x;
-    private double y;
- 
-    public Memento(double x, double y){
-        this.x = x;
-        this.y = y;
-    }
- 
-    public double getX(){
-        return x;
-    }
- 
-    public double getY(){
-        return y;
+    public String getState() {
+        return state;
     }
 }
 
----------------------------------------------------------------------------------------
+class Originator {
+    private String state;
+   /* lots of memory consumptive private data that is not necessary to define the
+    * state and should thus not be saved. Hence the small memento object. */
 
-public class CareTaker {
- 
-    private final Map<String, Memento>savepointStorage = new HashMap<String, Memento>();
- 
-    public void saveMemento(Memento memento,String savepointName){
-        System.out.println("Saving state..."+savepointName);
-        savepointStorage.put(savepointName, memento);
+    public void setState(String state) {
+        System.out.println("Originator: Setting state to " + state);
+        this.state = state;
     }
- 
-    public Memento getMemento(String savepointName){
-        System.out.println("Undo at ..."+savepointName);
-        return savepointStorage.get(savepointName);
+
+    public Memento save() {
+        System.out.println("Originator: Saving to Memento.");
+        return new Memento(state);
     }
- 
-    public void clearSavepoints(){
-        System.out.println("Clearing all save points...");
-        savepointStorage.clear();
+    public void restore(Memento m) {
+        state = m.getState();
+        System.out.println("Originator: State after restoring from Memento: " + state);
     }
- 
 }
 
----------------------------------------------------------------------------------------
+class Caretaker {
+    private ArrayList<Memento> mementos = new ArrayList<>();
 
-public class TestMementoPattern {
- 
+    public void addMemento(Memento m) {
+        mementos.add(m);
+    }
+
+    public Memento getMemento() {
+        return mementos.get(1);
+    }
+}
+
+public class MementoDemo {
     public static void main(String[] args) {
- 
-        CareTaker careTaker = new CareTaker();
-        Originator originator = new Originator(5, 10, careTaker);
- 
-        System.out.println("Default State: "+originator);
- 
-        originator.setX(originator.getY()*51);
- 
-        System.out.println("State: "+originator);
-        originator.createSavepoint("SAVE1");
- 
-        originator.setY(originator.getX()/22);
-        System.out.println("State: "+originator);
- 
-        originator.undo();
-        System.out.println("State after undo: "+originator);
- 
-        originator.setX(Math.pow(originator.getX(),3));
-        originator.createSavepoint("SAVE2");
-        System.out.println("State: "+originator);
-        originator.setY(originator.getX()-30);
-        originator.createSavepoint("SAVE3");
-        System.out.println("State: "+originator);
-        originator.setY(originator.getX()/22);
-        originator.createSavepoint("SAVE4");
-        System.out.println("State: "+originator);
- 
-        originator.undo("SAVE2");
-        System.out.println("Retrieving at: "+originator);
- 
-        originator.undoAll();
-        System.out.println("State after undo all: "+originator);
+        Caretaker caretaker = new Caretaker();
+        Originator originator = new Originator();
+        originator.setState("State1");
+        originator.setState("State2");
+        caretaker.addMemento( originator.save() );
+        originator.setState("State3");
+        caretaker.addMemento( originator.save() );
+        originator.setState("State4");
+        originator.restore( caretaker.getMemento() );
     }
- 
 }
 
-
-
-/*Saving state...INITIAL
-Default State: X: 5.0, Y: 10.0
-State: X: 510.0, Y: 10.0
-Saving state...SAVE1
-State: X: 510.0, Y: 23.181818181818183
-Undo at ...SAVE1
-State after undo: X: 510.0, Y: 10.0
-Saving state...SAVE2
-State: X: 1.32651E8, Y: 10.0
-Saving state...SAVE3
-State: X: 1.32651E8, Y: 1.3265097E8
-Saving state...SAVE4
-State: X: 1.32651E8, Y: 6029590.909090909
-Undo at ...SAVE2
-Retrieving at: X: 1.32651E8, Y: 10.0
-Undo at ...INITIAL
-Clearing all save points...
-State after undo all: X: 5.0, Y: 10.0*/
+Output
+Originator: Setting state to State1
+Originator: Setting state to State2
+Originator: Saving to Memento.
+Originator: Setting state to State3
+Originator: Saving to Memento.
+Originator: Setting state to State4
+Originator: State after restoring from Memento: State3
