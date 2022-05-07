@@ -1,0 +1,169 @@
+public class Originator {
+ 
+    private double x;
+    private double y;
+ 
+    private String lastUndoSavepoint;
+    CareTaker careTaker;
+ 
+    public Originator(double x, double y,CareTaker careTaker){
+        this.x = x;
+        this.y = y;
+ 
+        this.careTaker = careTaker;
+ 
+        createSavepoint("INITIAL");
+    }
+ 
+    public double getX(){
+        return x;
+    }
+ 
+    public double getY(){
+        return y;
+    }
+ 
+    public void setX(double x) {
+        this.x = x;
+    }
+ 
+    public void setY(double y) {
+        this.y = y;
+    }
+ 
+    public void createSavepoint(String savepointName){
+        careTaker.saveMemento(new Memento(this.x, this.y), savepointName);
+        lastUndoSavepoint = savepointName;
+    }
+ 
+    public void undo(){
+        setOriginatorState(lastUndoSavepoint);
+    }
+ 
+    public void undo(String savepointName){
+        setOriginatorState(savepointName);
+    }
+ 
+    public void undoAll(){
+        setOriginatorState("INITIAL");
+        careTaker.clearSavepoints();
+    }
+ 
+    private void setOriginatorState(String savepointName){
+        Memento mem = careTaker.getMemento(savepointName);
+        this.x = mem.getX();
+        this.y = mem.getY();
+    }
+ 
+    @Override
+    public String toString(){
+        return "X: "+x+", Y: "+y;
+    }
+ 
+}
+
+---------------------------------------------------------------------------------------
+
+public class Memento {
+ 
+    private double x;
+    private double y;
+ 
+    public Memento(double x, double y){
+        this.x = x;
+        this.y = y;
+    }
+ 
+    public double getX(){
+        return x;
+    }
+ 
+    public double getY(){
+        return y;
+    }
+}
+
+---------------------------------------------------------------------------------------
+
+public class CareTaker {
+ 
+    private final Map<String, Memento>savepointStorage = new HashMap<String, Memento>();
+ 
+    public void saveMemento(Memento memento,String savepointName){
+        System.out.println("Saving state..."+savepointName);
+        savepointStorage.put(savepointName, memento);
+    }
+ 
+    public Memento getMemento(String savepointName){
+        System.out.println("Undo at ..."+savepointName);
+        return savepointStorage.get(savepointName);
+    }
+ 
+    public void clearSavepoints(){
+        System.out.println("Clearing all save points...");
+        savepointStorage.clear();
+    }
+ 
+}
+
+---------------------------------------------------------------------------------------
+
+public class TestMementoPattern {
+ 
+    public static void main(String[] args) {
+ 
+        CareTaker careTaker = new CareTaker();
+        Originator originator = new Originator(5, 10, careTaker);
+ 
+        System.out.println("Default State: "+originator);
+ 
+        originator.setX(originator.getY()*51);
+ 
+        System.out.println("State: "+originator);
+        originator.createSavepoint("SAVE1");
+ 
+        originator.setY(originator.getX()/22);
+        System.out.println("State: "+originator);
+ 
+        originator.undo();
+        System.out.println("State after undo: "+originator);
+ 
+        originator.setX(Math.pow(originator.getX(),3));
+        originator.createSavepoint("SAVE2");
+        System.out.println("State: "+originator);
+        originator.setY(originator.getX()-30);
+        originator.createSavepoint("SAVE3");
+        System.out.println("State: "+originator);
+        originator.setY(originator.getX()/22);
+        originator.createSavepoint("SAVE4");
+        System.out.println("State: "+originator);
+ 
+        originator.undo("SAVE2");
+        System.out.println("Retrieving at: "+originator);
+ 
+        originator.undoAll();
+        System.out.println("State after undo all: "+originator);
+    }
+ 
+}
+
+
+
+/*Saving state...INITIAL
+Default State: X: 5.0, Y: 10.0
+State: X: 510.0, Y: 10.0
+Saving state...SAVE1
+State: X: 510.0, Y: 23.181818181818183
+Undo at ...SAVE1
+State after undo: X: 510.0, Y: 10.0
+Saving state...SAVE2
+State: X: 1.32651E8, Y: 10.0
+Saving state...SAVE3
+State: X: 1.32651E8, Y: 1.3265097E8
+Saving state...SAVE4
+State: X: 1.32651E8, Y: 6029590.909090909
+Undo at ...SAVE2
+Retrieving at: X: 1.32651E8, Y: 10.0
+Undo at ...INITIAL
+Clearing all save points...
+State after undo all: X: 5.0, Y: 10.0*/
